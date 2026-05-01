@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNTHIA — Your AI Electronic Music Mentor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ============ RESET + BASE ============ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+:root {
+  --bg: #08070d;
+  --bg-2: #0f0d1a;
+  --ink: #f4f1ff;
+  --ink-dim: rgba(244, 241, 255, 0.6);
+  --magenta: #ff2d87;
+  --purple: #8b5cf6;
+  --electric: #00d4ff;
+  --lime: #b8ff3c;
+  --amber: #ffb627;
+  --grad-1: linear-gradient(135deg, #ff2d87 0%, #8b5cf6 50%, #00d4ff 100%);
+  --grad-2: linear-gradient(135deg, #b8ff3c 0%, #00d4ff 100%);
+  --grad-3: linear-gradient(135deg, #ffb627 0%, #ff2d87 100%);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-x: hidden;
+  cursor: none;
+}
+@media (max-width: 900px) { body { cursor: auto; } }
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: none; border: none; background: none; color: inherit; }
+img, iframe { max-width: 100%; display: block; }
+
+/* Grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.18 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+
+/* Background mesh blobs */
+.mesh {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mesh::before, .mesh::after {
+  content: '';
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.35;
+  animation: meshFloat 22s ease-in-out infinite;
+}
+.mesh::before { background: var(--magenta); top: -10vw; left: -10vw; }
+.mesh::after  { background: var(--electric); bottom: -15vw; right: -15vw; animation-delay: -11s; }
+@keyframes meshFloat {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(15vw, 10vh) scale(1.15); }
+}
+
+/* ============ CUSTOM CURSOR ============ */
+.cursor-dot, .cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: difference;
+}
+.cursor-dot {
+  width: 8px; height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+.cursor-ring {
+  width: 40px; height: 40px;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  transition: transform 0.25s cubic-bezier(.2,.9,.3,1), width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
+}
+body.cursor-hover .cursor-ring { transform: translate(-50%, -50%) scale(2); border-color: var(--lime); }
+body.cursor-hover .cursor-dot { transform: translate(-50%, -50%) scale(0); }
+
+/* ============ NAV ============ */
+nav.top {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 40px;
+  z-index: 100;
+  mix-blend-mode: difference;
+}
+nav .logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.18em;
+  color: #fff;
+}
+nav .logo span { color: var(--lime); }
+nav ul { display: flex; gap: 36px; list-style: none; }
+nav ul a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  position: relative;
+  padding: 4px 0;
+}
+nav ul a::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 0; height: 1px;
+  background: var(--lime);
+  transition: width 0.3s ease;
+}
+nav ul a:hover::after { width: 100%; }
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid #fff;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.nav-cta .pulse {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--lime);
+  animation: pulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--lime);
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+@media (max-width: 700px) {
+  nav.top { padding: 18px 20px; }
+  nav ul { display: none; }
+}
+
+/* ============ HERO ============ */
+.hero {
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 40px 80px;
+  overflow: hidden;
+}
+.hero .meta-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero .meta-line::before {
+  content: '';
+  width: 40px; height: 1px;
+  background: var(--ink-dim);
+}
+
+.wordmark {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: clamp(80px, 19vw, 320px);
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  background: linear-gradient(135deg, #ff2d87 0%, #8b5cf6 30%, #00d4ff 60%, #b8ff3c 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 8s ease-in-out infinite;
+  position: relative;
+  display: inline-block;
+}
+.wordmark::after {
+  content: 'SYNTHIA';
+  position: absolute;
+  inset: 0;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.06);
+  background: none;
+  z-index: -1;
+  transform: translate(6px, 6px);
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.hero-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: end;
+  margin-top: 40px;
+}
+.hero-tag {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: clamp(22px, 2.4vw, 38px);
+  line-height: 1.2;
+  font-weight: 400;
+  max-width: 480px;
+  color: var(--ink);
+}
+.hero-tag em { color: var(--lime); font-style: italic; }
+
+.hero-side {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  text-align: right;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  padding-right: 24px;
+  max-width: 280px;
+  margin-left: auto;
+}
+.hero-side strong { color: var(--electric); font-weight: 500; }
+
+@media (max-width: 800px) {
+  .hero-bottom { grid-template-columns: 1fr; gap: 30px; }
+  .hero-side { text-align: left; border-right: none; border-left: 1px solid rgba(255,255,255,0.1); padding-right: 0; padding-left: 24px; margin-left: 0; }
+}
+
+/* Oscilloscope canvas behind hero */
+#osc {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: -1;
+  opacity: 0.6;
+}
+
+/* Scroll cue */
+.scroll-cue {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.scroll-cue::after {
+  content: '';
+  width: 1px; height: 40px;
+  background: linear-gradient(to bottom, var(--lime), transparent);
+  animation: scrollLine 2s ease-in-out infinite;
+}
+@keyframes scrollLine {
+  0% { transform: scaleY(0); transform-origin: top; }
+  50% { transform: scaleY(1); transform-origin: top; }
+  51% { transform: scaleY(1); transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+
+/* ============ MARQUEE ============ */
+.marquee {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+  padding: 28px 0;
+  background: rgba(255,255,255,0.01);
+}
+.marquee-track {
+  display: flex;
+  gap: 60px;
+  white-space: nowrap;
+  animation: marqueeScroll 35s linear infinite;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(28px, 5vw, 64px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  width: max-content;
+}
+.marquee-track span {
+  display: inline-flex;
+  align-items: center;
+  gap: 60px;
+}
+.marquee-track span::after {
+  content: '✦';
+  font-size: 0.6em;
+  color: var(--magenta);
+}
+.marquee-track .ghost { -webkit-text-fill-color: transparent; -webkit-text-stroke: 1px var(--ink); }
+@keyframes marqueeScroll {
+  to { transform: translateX(-50%); }
+}
+
+/* ============ SECTIONS ============ */
+section { padding: 140px 40px; position: relative; }
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--lime);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-label::before {
+  content: '';
+  display: block;
+  width: 8px; height: 8px;
+  background: var(--lime);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--lime);
+}
+.section-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: clamp(40px, 6vw, 96px);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  margin-bottom: 60px;
+  max-width: 16ch;
+}
+.section-title .accent {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-weight: 400;
+  background: var(--grad-1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============ MANIFESTO ============ */
+.manifesto {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 80px;
+  align-items: start;
+}
+.manifesto p {
+  font-size: clamp(20px, 1.8vw, 28px);
+  line-height: 1.5;
+  color: var(--ink-dim);
+  font-weight: 300;
+  max-width: 60ch;
+}
+.manifesto p .highlight {
+  color: var(--ink);
+  background: linear-gradient(120deg, rgba(184, 255, 60, 0.15), rgba(184, 255, 60, 0.05));
+  padding: 0 6px;
+}
+.manifesto-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 40px;
+}
+.stat-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: clamp(48px, 5vw, 80px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: var(--grad-2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) { .manifesto { grid-template-columns: 1fr; gap: 40px; } }
+
+/* ============ GENRE GRID ============ */
+.genres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.genre-card {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 24px;
+  padding: 28px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.4s cubic-bezier(.2,.9,.3,1);
+  transform-style: preserve-3d;
+  cursor: none;
+  isolation: isolate;
+}
+.genre-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transition: transform 0.6s ease;
+}
+.genre-card:nth-child(1)::before { background: linear-gradient(135deg, #ff2d87, #8b5cf6); }
+.genre-card:nth-child(2)::before { background: linear-gradient(135deg, #00d4ff, #8b5cf6); }
+.genre-card:nth-child(3)::before { background: linear-gradient(135deg, #b8ff3c, #00d4ff); }
+.genre-card:nth-child(4)::before { background: linear-gradient(135deg, #ffb627, #ff2d87); }
+.genre-card:nth-child(5)::before { background: linear-gradient(135deg, #8b5cf6, #08070d); }
+.genre-card:nth-child(6)::before { background: linear-gradient(135deg, #ff2d87, #ffb627); }
+.genre-card::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 23px;
+  background: rgba(8, 7, 13, 0.7);
+  z-index: -1;
+  backdrop-filter: blur(8px);
+  transition: opacity 0.4s ease;
+}
+.genre-card:hover { transform: translateY(-8px); }
+.genre-card:hover::after { opacity: 0.4; }
+.genre-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+}
+.genre-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.genre-bpm {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  margin-top: 4px;
+}
+.genre-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.85);
+  font-weight: 300;
+}
+
+/* mini visualizer in card */
+.viz {
+  display: flex;
+  align-items: end;
+  gap: 3px;
+  height: 32px;
+  margin-top: 16px;
+}
+.viz span {
+  width: 3px;
+  background: var(--ink);
+  border-radius: 2px;
+  animation: vizBar 1.2s ease-in-out infinite;
+}
+.viz span:nth-child(1) { animation-delay: -0.0s; }
+.viz span:nth-child(2) { animation-delay: -0.2s; }
+.viz span:nth-child(3) { animation-delay: -0.4s; }
+.viz span:nth-child(4) { animation-delay: -0.1s; }
+.viz span:nth-child(5) { animation-delay: -0.3s; }
+.viz span:nth-child(6) { animation-delay: -0.5s; }
+.viz span:nth-child(7) { animation-delay: -0.2s; }
+.viz span:nth-child(8) { animation-delay: -0.4s; }
+.viz span:nth-child(9) { animation-delay: -0.0s; }
+@keyframes vizBar {
+  0%, 100% { height: 20%; }
+  50% { height: 100%; }
+}
+
+/* ============ AVATAR SECTION ============ */
+.avatar-section {
+  background: linear-gradient(180deg, transparent 0%, rgba(139, 92, 246, 0.08) 50%, transparent 100%);
+  position: relative;
+}
+.avatar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 60px;
+  align-items: start;
+}
+.avatar-info h3 {
+  font-family: 'Instrument Serif', serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(36px, 4.5vw, 72px);
+  line-height: 1;
+  margin-bottom: 28px;
+}
+.avatar-info h3 .stroke {
+  -webkit-text-stroke: 1px var(--ink);
+  -webkit-text-fill-color: transparent;
+}
+.avatar-info p {
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ink-dim);
+  margin-bottom: 32px;
+  max-width: 50ch;
+}
+.live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--lime);
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lime);
+  margin-bottom: 24px;
+}
+.live-status .dot {
+  width: 6px; height: 6px;
+  background: var(--lime);
+  border-radius: 50%;
+  animation: pulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--lime);
+}
+.cap-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+}
+.cap-list li {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  color: var(--ink-dim);
+  transition: all 0.3s ease;
+}
+.cap-list li:hover { color: var(--ink); border-color: var(--electric); transform: translateY(-2px); }
+
+.avatar-frame {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 45, 135, 0.2), rgba(0, 212, 255, 0.2));
+  padding: 14px;
+  box-shadow:
+    0 0 80px rgba(139, 92, 246, 0.3),
+    0 30px 80px rgba(0, 0, 0, 0.5);
+}
+.avatar-frame::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 30px;
+  background: conic-gradient(from 0deg, var(--magenta), var(--purple), var(--electric), var(--lime), var(--magenta));
+  z-index: -1;
+  animation: rotate 8s linear infinite;
+}
+@keyframes rotate { to { transform: rotate(360deg); } }
+.avatar-frame iframe {
+  border: 0;
+  border-radius: 18px;
+  width: 100%;
+  aspect-ratio: 16/9;
+  display: block;
+  background: #000;
+}
+.frame-tag {
+  position: absolute;
+  top: 24px; left: 24px;
+  z-index: 5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(10px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.frame-tag .dot {
+  width: 6px; height: 6px;
+  background: #ff3838;
+  border-radius: 50%;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@media (max-width: 1000px) {
+  .avatar-grid { grid-template-columns: 1fr; gap: 40px; }
+}
+
+/* ============ METHOD TIMELINE ============ */
+.method {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin-top: 60px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.step {
+  padding: 40px 30px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  transition: background 0.4s ease;
+}
+.step:hover { background: rgba(255, 45, 135, 0.04); }
+.step:nth-child(3n) { border-right: none; }
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.step-num::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+.step h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.1;
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+}
+.step h4 .arrow {
+  display: inline-block;
+  color: var(--lime);
+  transition: transform 0.3s ease;
+}
+.step:hover h4 .arrow { transform: translate(6px, -6px); }
+.step p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  font-weight: 300;
+}
+
+@media (max-width: 800px) {
+  .method { grid-template-columns: 1fr; }
+  .step { border-right: none !important; }
+}
+
+/* ============ QUOTE / VOICE ============ */
+.voice-section {
+  text-align: center;
+  padding: 160px 40px;
+}
+.voice-section blockquote {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(36px, 5vw, 80px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  max-width: 18ch;
+  margin: 0 auto 40px;
+}
+.voice-section blockquote span {
+  background: var(--grad-1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.voice-attr {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+/* ============ CTA ============ */
+.cta-section {
+  text-align: center;
+  padding: 100px 40px 160px;
+}
+.cta-headline {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: clamp(40px, 7vw, 120px);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  margin-bottom: 50px;
+}
+.cta-headline .grad {
+  background: var(--grad-3);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.btn-magnetic {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 44px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: #08070d;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  transition: transform 0.3s cubic-bezier(.2,.9,.3,1), background 0.3s ease;
+  cursor: none;
+}
+.btn-magnetic:hover { background: #fff; }
+.btn-magnetic .arrow {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+.btn-magnetic:hover .arrow { transform: translateX(6px); }
+
+/* ============ FOOTER ============ */
+footer {
+  padding: 80px 40px 40px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.footer-mark {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: clamp(80px, 18vw, 280px);
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  text-align: center;
+  -webkit-text-stroke: 1px var(--ink);
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 60px;
+  transition: -webkit-text-fill-color 0.4s ease;
+  cursor: none;
+}
+.footer-mark:hover {
+  -webkit-text-fill-color: var(--lime);
+  -webkit-text-stroke-color: var(--lime);
+}
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.footer-bottom a:hover { color: var(--lime); }
+
+/* ============ SCROLL REVEAL ============ */
+.reveal { opacity: 0; transform: translateY(40px); transition: opacity 1s ease, transform 1s cubic-bezier(.2,.9,.3,1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-stagger > * { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s cubic-bezier(.2,.9,.3,1); }
+.reveal-stagger.visible > *:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0.05s; }
+.reveal-stagger.visible > *:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
+.reveal-stagger.visible > *:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 0.25s; }
+.reveal-stagger.visible > *:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 0.35s; }
+.reveal-stagger.visible > *:nth-child(5) { opacity: 1; transform: translateY(0); transition-delay: 0.45s; }
+.reveal-stagger.visible > *:nth-child(6) { opacity: 1; transform: translateY(0); transition-delay: 0.55s; }
+
+/* ============ LOADER ============ */
+.loader {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 28px;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+.loader.gone { opacity: 0; visibility: hidden; }
+.loader-bars {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 60px;
+}
+.loader-bars span {
+  width: 4px;
+  background: var(--lime);
+  border-radius: 2px;
+  animation: vizBar 0.8s ease-in-out infinite;
+}
+.loader-bars span:nth-child(1) { animation-delay: 0.0s; height: 30%; }
+.loader-bars span:nth-child(2) { animation-delay: 0.1s; height: 50%; }
+.loader-bars span:nth-child(3) { animation-delay: 0.2s; height: 70%; }
+.loader-bars span:nth-child(4) { animation-delay: 0.3s; height: 90%; }
+.loader-bars span:nth-child(5) { animation-delay: 0.4s; height: 70%; }
+.loader-bars span:nth-child(6) { animation-delay: 0.5s; height: 50%; }
+.loader-bars span:nth-child(7) { animation-delay: 0.6s; height: 30%; }
+.loader-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-bars"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="loader-text">Tuning the oscillators…</div>
+</div>
+
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="mesh"></div>
+
+<nav class="top">
+  <div class="logo">SYNTHIA<span>.</span></div>
+  <ul>
+    <li><a href="#manifesto">Manifesto</a></li>
+    <li><a href="#genres">Curriculum</a></li>
+    <li><a href="#avatar">Talk to Synthia</a></li>
+    <li><a href="#method">Method</a></li>
+  </ul>
+  <a href="#avatar" class="nav-cta"><span class="pulse"></span>Live Now</a>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <canvas id="osc"></canvas>
+  <div class="meta-line">001 · A digital human for electronic music · Est. 2026</div>
+  <div class="wordmark">SYNTHIA</div>
+  <div class="hero-bottom">
+    <p class="hero-tag">Your AI <em>electronic music mentor</em> — built to demystify production, sound design, and the soul of synths.</p>
+    <div class="hero-side">
+      Built on Live Avatar.<br>
+      Trained on <strong>40+ years</strong><br>
+      of electronic music history.<br>
+      Always on. <strong>Never gatekeeping.</strong>
+    </div>
+  </div>
+  <div class="scroll-cue">Scroll</div>
+</section>
+
+<!-- ============ MARQUEE ============ -->
+<div class="marquee">
+  <div class="marquee-track">
+    <span>House</span><span class="ghost">Techno</span><span>Ambient</span><span class="ghost">Drum &amp; Bass</span><span>Synthwave</span><span class="ghost">Garage</span><span>IDM</span><span class="ghost">Trance</span><span>Hyperpop</span><span class="ghost">Footwork</span>
+    <span>House</span><span class="ghost">Techno</span><span>Ambient</span><span class="ghost">Drum &amp; Bass</span><span>Synthwave</span><span class="ghost">Garage</span><span>IDM</span><span class="ghost">Trance</span><span>Hyperpop</span><span class="ghost">Footwork</span>
+  </div>
+</div>
+
+<!-- ============ MANIFESTO ============ -->
+<section id="manifesto">
+  <div class="reveal">
+    <div class="section-label">[ Manifesto / 001 ]</div>
+    <h2 class="section-title">No gatekeeping. <span class="accent">Just sound.</span></h2>
+  </div>
+  <div class="manifesto reveal">
+    <p>
+      Electronic music has a problem. The barrier to entry isn't talent — it's <span class="highlight">jargon, intimidation, and YouTube tutorials made for people who already know everything</span>. Synthia exists to fix that.
+      <br><br>
+      Trained on the lineage from Kraftwerk to Aphex Twin to Floating Points, she doesn't lecture. She <em>asks first</em>, <em>scaffolds</em>, and gives you something to try in your DAW before you log off.
+    </p>
+    <div class="manifesto-stats">
+      <div>
+        <div class="stat-num" data-count="2">2σ</div>
+        <div class="stat-label">Bloom's two-sigma effect — one-on-one tutoring outperforms classroom learning by two standard deviations.</div>
+      </div>
+      <div>
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Patience. Synthia never gets tired of explaining what an LFO does.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GENRES / CURRICULUM ============ -->
+<section id="genres">
+  <div class="reveal">
+    <div class="section-label">[ Curriculum / 002 ]</div>
+    <h2 class="section-title">From <span class="accent">first beat</span> to last master.</h2>
+  </div>
+  <div class="genres reveal-stagger">
+    <article class="genre-card">
+      <div>
+        <div class="genre-num">01 · Four-on-the-floor</div>
+        <h3 class="genre-name">House &amp; Techno</h3>
+        <div class="genre-bpm">120 – 140 BPM</div>
+      </div>
+      <div>
+        <p class="genre-desc">Detroit roots, Chicago soul, Berlin bite. We'll build your kick, your hat swing, and that signature sidechain pump.</p>
+        <div class="viz"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </article>
+    <article class="genre-card">
+      <div>
+        <div class="genre-num">02 · Texture &amp; space</div>
+        <h3 class="genre-name">Ambient &amp; IDM</h3>
+        <div class="genre-bpm">60 – 100 BPM</div>
+      </div>
+      <div>
+        <p class="genre-desc">Granular synthesis, reverb tails, broken rhythm. The Aphex / Eno / Tim Hecker school of sound as feeling.</p>
+        <div class="viz"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </article>
+    <article class="genre-card">
+      <div>
+        <div class="genre-num">03 · UK underground</div>
+        <h3 class="genre-name">D&amp;B &amp; Garage</h3>
+        <div class="genre-bpm">130 – 175 BPM</div>
+      </div>
+      <div>
+        <p class="genre-desc">Amen breaks, Reese basses, two-step shuffle. Every chopping technique you'll ever need, demystified.</p>
+        <div class="viz"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </article>
+    <article class="genre-card">
+      <div>
+        <div class="genre-num">04 · Synthesis 101 → 401</div>
+        <h3 class="genre-name">Sound Design</h3>
+        <div class="genre-bpm">Subtractive / FM / Wavetable</div>
+      </div>
+      <div>
+        <p class="genre-desc">Build a Reese bass from scratch. Reverse-engineer a Skrillex growl. Make a pad cry. Synth mechanics, decoded.</p>
+        <div class="viz"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </article>
+    <article class="genre-card">
+      <div>
+        <div class="genre-num">05 · The polish</div>
+        <h3 class="genre-name">Mixing &amp; Mastering</h3>
+        <div class="genre-bpm">EQ · Comp · Stereo · LUFS</div>
+      </div>
+      <div>
+        <p class="genre-desc">Why your kick and bass fight. How to read meters that actually matter. When to print and when to walk away.</p>
+        <div class="viz"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </article>
+    <article class="genre-card">
+      <div>
+        <div class="genre-num">06 · The why behind the what</div>
+        <h3 class="genre-name">Theory for Producers</h3>
+        <div class="genre-bpm">Modes · Voicings · Tension</div>
+      </div>
+      <div>
+        <p class="genre-desc">Phrygian for darkness. Dorian for groove. Why a minor 9th over a dom7 makes your spine tingle. Just enough theory.</p>
+        <div class="viz"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ============ AVATAR / LIVE ============ -->
+<section id="avatar" class="avatar-section">
+  <div class="reveal">
+    <div class="section-label">[ Live · 003 ]</div>
+    <h2 class="section-title">Talk to her. <span class="accent">She's listening.</span></h2>
+  </div>
+  <div class="avatar-grid">
+    <div class="avatar-info reveal">
+      <div class="live-status"><span class="dot"></span>Synthia is online</div>
+      <h3>Hit the mic.<br><span class="stroke">No script.</span><br>No judgement.</h3>
+      <p>Ask her to build you a Reese bass. Ask her why your mix sounds muddy. Ask her what the difference is between Detroit techno and Berlin techno. Ask her anything you'd Google but feel embarrassed to ask out loud.</p>
+      <ul class="cap-list">
+        <li>Ableton / FL / Logic</li>
+        <li>Serum &amp; Vital</li>
+        <li>Mixing</li>
+        <li>Sound design</li>
+        <li>Music theory</li>
+        <li>Genre history</li>
+        <li>Workflow tips</li>
+      </ul>
+    </div>
+    <div class="avatar-frame reveal">
+      <div class="frame-tag"><span class="dot"></span>Live · Mic required</div>
+      <iframe src="https://embed.liveavatar.com/v1/d195ec32-cca4-48ab-9979-9654c4a999f1?orientation=horizontal" allow="microphone" title="LiveAvatar Embed"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ============ METHOD ============ -->
+<section id="method">
+  <div class="reveal">
+    <div class="section-label">[ Method / 004 ]</div>
+    <h2 class="section-title">Six moves. <span class="accent">Every conversation.</span></h2>
+  </div>
+  <div class="method reveal-stagger">
+    <div class="step">
+      <div class="step-num">STEP / 01</div>
+      <h4>Ask first <span class="arrow">↗</span></h4>
+      <p>What's your level? What's the goal? Synthia never assumes — she scaffolds from where you actually are.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP / 02</div>
+      <h4>Anchor <span class="arrow">↗</span></h4>
+      <p>Every new concept gets connected to a song you know, a feeling you've felt, a lesson you've already had.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP / 03</div>
+      <h4>Chunk <span class="arrow">↗</span></h4>
+      <p>One concept per turn. Cognitive load matters. No firehose. Wait for the click before moving on.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP / 04</div>
+      <h4>Analogy &gt; Jargon <span class="arrow">↗</span></h4>
+      <p>A low-pass filter is a curtain on the highs. Compression is an automatic volume hand. Words you can <em>feel</em>.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP / 05</div>
+      <h4>Action <span class="arrow">↗</span></h4>
+      <p>Every lesson ends with a 60-second challenge in your DAW. You move, you learn. Theory dies on the page.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP / 06</div>
+      <h4>Check &amp; close <span class="arrow">↗</span></h4>
+      <p>"Does that click — or do you want me to come at it from another angle?" One specific win, one tiny task, an open door.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VOICE / QUOTE ============ -->
+<section class="voice-section reveal">
+  <div class="section-label" style="justify-content:center; display: inline-flex;">[ House style / 005 ]</div>
+  <blockquote>"There are no wrong notes — only <span>unresolved ones</span>."</blockquote>
+  <div class="voice-attr">— Synthia, every Tuesday</div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="cta-section reveal">
+  <h2 class="cta-headline">So… <span class="grad">what are we<br>making today?</span></h2>
+  <a href="#avatar" class="btn-magnetic" id="magnetic">
+    Start the session <span class="arrow">→</span>
+  </a>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="footer-mark">SYNTHIA</div>
+  <div class="footer-bottom">
+    <div>© 2026 — Built for MN5814</div>
+    <div>Live Avatar · HeyGen · Designed with care</div>
+    <div><a href="#top">Back to top ↑</a></div>
+  </div>
+</footer>
+
+<script>
+/* ============ LOADER ============ */
+window.addEventListener('load', () => {
+  setTimeout(() => document.getElementById('loader').classList.add('gone'), 900);
+});
+
+/* ============ CUSTOM CURSOR ============ */
+(() => {
+  const dot = document.getElementById('cursorDot');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
+  });
+
+  function lerp() {
+    rx += (mx - rx) * 0.15;
+    ry += (my - ry) * 0.15;
+    ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)` + (document.body.classList.contains('cursor-hover') ? ' scale(2)' : '');
+    requestAnimationFrame(lerp);
+  }
+  lerp();
+
+  document.querySelectorAll('a, button, .genre-card, .footer-mark, .step, .cap-list li').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+  });
+})();
+
+/* ============ OSCILLOSCOPE BACKGROUND ============ */
+(() => {
+  const c = document.getElementById('osc');
+  const ctx = c.getContext('2d');
+  let w, h, t = 0;
+
+  function resize() {
+    w = c.width = c.offsetWidth * devicePixelRatio;
+    h = c.height = c.offsetHeight * devicePixelRatio;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    const cy = h / 2;
+
+    // 3 layered sine waves
+    const waves = [
+      { color: 'rgba(255, 45, 135, 0.5)', amp: h * 0.15, freq: 0.008, speed: 0.02, off: 0 },
+      { color: 'rgba(0, 212, 255, 0.45)', amp: h * 0.18, freq: 0.006, speed: 0.015, off: 1.5 },
+      { color: 'rgba(184, 255, 60, 0.35)', amp: h * 0.12, freq: 0.012, speed: 0.025, off: 3 }
+    ];
+
+    waves.forEach(wave => {
+      ctx.beginPath();
+      ctx.lineWidth = 1.2 * devicePixelRatio;
+      ctx.strokeStyle = wave.color;
+      for (let x = 0; x <= w; x += 2) {
+        const y = cy + Math.sin(x * wave.freq + t * wave.speed + wave.off) * wave.amp * Math.sin(x * 0.001 + t * 0.005);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    });
+
+    t++;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ============ SCROLL REVEAL ============ */
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      io.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => io.observe(el));
+
+/* ============ 3D TILT ON CARDS ============ */
+document.querySelectorAll('.genre-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    const cx = r.width / 2, cy = r.height / 2;
+    const rx = ((y - cy) / cy) * -8;
+    const ry = ((x - cx) / cx) * 8;
+    card.style.transform = `translateY(-8px) perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+  });
+});
+
+/* ============ MAGNETIC BUTTON ============ */
+(() => {
+  const btn = document.getElementById('magnetic');
+  if (!btn) return;
+  btn.addEventListener('mousemove', e => {
+    const r = btn.getBoundingClientRect();
+    const x = e.clientX - r.left - r.width / 2;
+    const y = e.clientY - r.top - r.height / 2;
+    btn.style.transform = `translate(${x * 0.25}px, ${y * 0.4}px)`;
+  });
+  btn.addEventListener('mouseleave', () => btn.style.transform = '');
+})();
+
+/* ============ FOOTER MARK INTERACTIVE ============ */
+(() => {
+  const mark = document.querySelector('.footer-mark');
+  if (!mark) return;
+  mark.addEventListener('mousemove', e => {
+    const r = mark.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width - 0.5) * 20;
+    const y = ((e.clientY - r.top) / r.height - 0.5) * 20;
+    mark.style.transform = `translate(${x}px, ${y}px)`;
+  });
+  mark.addEventListener('mouseleave', () => mark.style.transform = '');
+})();
+
+</script>
+</body>
+</html>
